@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by Dzzirt on 03.11.2016.
@@ -8,12 +9,14 @@ import java.util.Collection;
 public class Bank {
 
     private int m_totalBalance;
-
+    private Main.Primitives m_primitive;
     private ArrayList<BankClient> m_clients;
-
-    public Bank() {
+    private Semaphore m_semaphore;
+    public Bank(Main.Primitives primitive) {
         m_clients = new ArrayList<>();
         m_totalBalance = 0;
+        m_primitive = primitive;
+        m_semaphore = new Semaphore(1, true);
     }
 
     public BankClient createClient() {
@@ -27,12 +30,34 @@ public class Bank {
     }
 
     public void updateClientBalance(BankClient client, int value) throws IOException {
+        switch (m_primitive) {
+            case SEMAPHORE:
+                try {
+                    m_semaphore.acquire();
+                    updateClientBalanceImpl(client, value);
+                    m_semaphore.release();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                break;
+            case SYNCHRONIZED: {
+                synchronized (this) {
+                    updateClientBalanceImpl(client, value);
+                }
+                break;
+            }
+            case NONE:
+                updateClientBalanceImpl(client, value);
+                break;
+        }
+    }
+
+    private void updateClientBalanceImpl(BankClient client, int value) throws IOException {
         int totalBalance = getTotalBalance();
         System.out.println("Client " + client.getId() +
                 " initiates reading total balance. Total = " + totalBalance + ".");
-        if (totalBalance < 0) {
-            throw new IOException("Operation cancelled. Balance is negative.");
-        }
+
         someLongOperations();
         totalBalance += value;
 
@@ -42,11 +67,16 @@ public class Bank {
                 " and initiates setting total balance to " +
                 totalBalance + ". Must be: " + newTotal + ".");
 
+        if (totalBalance < 0) {
+            throw new IOException("Operation cancelled. Balance is negative.");
+        }
+
+
+
         // Check correctness of transaction through actual total balance
         if (totalBalance != getTotalBalance() + value) {
             throw new IOException("Error!");
         }
-
         setTotalBalance(totalBalance);
     }
 
