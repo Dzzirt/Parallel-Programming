@@ -1,4 +1,6 @@
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by Dzzirt on 03.11.2016.
@@ -20,11 +22,17 @@ public class Bank {
         return bankClient;
     }
 
-    public void updateClientBalance(BankClient client, int value) {
+    public Collection<BankClient> getClients() {
+        return m_clients;
+    }
+
+    public void updateClientBalance(BankClient client, int value) throws IOException {
         int totalBalance = getTotalBalance();
         System.out.println("Client " + client.getId() +
                 " initiates reading total balance. Total = " + totalBalance + ".");
-
+        if (totalBalance < 0) {
+            throw new IOException("Operation cancelled. Balance is negative.");
+        }
         someLongOperations();
         totalBalance += value;
 
@@ -36,7 +44,7 @@ public class Bank {
 
         // Check correctness of transaction through actual total balance
         if (totalBalance != getTotalBalance() + value) {
-            System.out.println("Error!");
+            throw new IOException("Error!");
         }
 
         setTotalBalance(totalBalance);
@@ -51,7 +59,11 @@ public class Bank {
     }
 
     private void someLongOperations() {
-        //TODO:
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }

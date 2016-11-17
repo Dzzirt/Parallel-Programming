@@ -2,13 +2,13 @@
  * Created by Dzzirt on 03.11.2016.
  */
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Bank bank = new Bank();
-        BankClient client = bank.createClient();
-        BankClient client1 = bank.createClient();
+        bank.createClient().startSession();
+        bank.createClient().startSession();
         //Wait for multiple objects
-        while (true) {
-            
+        for (BankClient bankClient : bank.getClients()) {
+            bankClient.getSession().join();
         }
     }
 }
